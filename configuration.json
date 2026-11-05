@@ -1,0 +1,7 @@
+{
+    "bot_token" : "Paste your bot token here",
+    "allowed_chat_id" :0,
+    "brave_path" : "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "deafult_volume" :40
+}
+

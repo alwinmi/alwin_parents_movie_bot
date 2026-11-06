@@ -14,10 +14,10 @@ try:
 except ImportError:
     print("Missing packages. Run:")
     print("Python -m pip install requests pycaw comtypes")
-    svs.exit(1)
+    sys.exit(1)
 
 
-BASE_DIR = path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = BASE_DIR / "config.json"
 OFFSET_FILE = BASE_DIR / "telegram_offset.txt"
 
@@ -166,7 +166,7 @@ def valid_video_id(video_id):
     return bool(re.fullmatch(r"[A-Za-z0-9_-]{6,20}", video_id))
 
 
-def stop_brave();
+def stop_brave():
     subprocess.run(
         ["taskkill","/F", "/IM", "brave.exe"],
         stdout=subprocess.DEVNULL,

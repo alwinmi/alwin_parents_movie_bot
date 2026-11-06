@@ -348,4 +348,127 @@ def process_message(chat_id, text):
                 except Exception as error:
                     send_message(chat_id, f"Unmute failed:\n{error}")
                 return
+
+            if command == "/stop":
+                stop_brave()
+                send_message(chat_id, "Video stopped and Brave closed.")
+                return
             
+            if command ==  "/status":
+                try: 
+                    volume = get_volume()
+                    muted = get_mute_status()
+
+                    send_message(
+                        chat_id,
+                        "Movie PC is online.\n"
+                        f"Volume: {volume}%\n"
+                        f"Muted: {'Yes' if muted else 'No'}"
+                    )
+                except Exception as error:
+                    send_message(
+                        chat_id,
+                        f"Movie PC is online, but volume status failed:\n{error}"
+                    )
+                return
+
+            if command ==  "/shutdown":
+                shutdown_requested_by == chat_id
+
+                send_message(
+                    chat_id,
+                    "Shutdown requested.\n\n"
+                    "Send /confirmshutdown to shut down the PC in 60 seconds. \n"
+                    "Send /cancelshutdown to cancel."
+                )
+                return
+
+            if command == "/confirmshutdown":
+                if shutdown_requested_by != chat_id:
+                    send_message(
+                        chat_id,
+                        "No shutdown request is waiting for confirmation.\n"
+                        "Send /shutdown first."
+                    )
+                    return
+                
+                send_message(
+                    chat_id,
+                    "PC will shut down in 60 seconds.\n"
+                    "Send /cancelshutdown if you need to stop it."
+                )
+
+                schedule_shutdown()
+                shutdown_requested_by = None
+                return
+
+            if command == "/cancelshutdown":
+                shutdown_requested_by = None
+
+                if cancel_shutdown():
+                    send_message(chat_id, "Pending shutdown cancelled.")
+                else:
+                    send_message(chat_id, "There was no pending Windows shutdown.")
+
+                return
+
+            send_message(
+                chat_id,
+                "Unknown command.\n"
+                "Send /help to see the available commands."
+            )
+
+
+def main():
+    offset = load_offset()
+
+    print("Movie Controller is running.")
+    print("Waiting for Telegram messages...")
+
+    while True:
+        try:
+            response = requests.get(
+                f"{API_URL}/getUpdates",
+                params={
+                    "offset":offset,
+                    "timeout":30,
+                    "allowed_updates": json.dumps(["messgae"])
+                },
+                timeout=40
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            if not data.get("ok"):
+                print(f"Telegram API error: {data}")
+                time.sleep(5)
+                continue
+
+            for update in data.get("result",[]):
+                update_id = update["update_id"]
+                offset = update_id + 1
+                save_offset(offset)
+
+                message = update.get("message", {})
+                chat = message.get("chat", {})
+                chat_id = chat.get("id")
+                text = message.get("text")
+
+                if chat_id is None or not text:
+                    continue
+
+                print(f"Message received from chat ID {chat_id}")
+                process_message(chat_id, text)
+
+        except requests.exception.RequestException as error:
+            print(f"Network error: {error}")
+            time.sleep(10)
+
+        except Exception as error:
+            print(f"Unexpected error: {error}")
+            time.sleep(10)
+
+
+if __name__=="__main__":
+    main()
